@@ -774,6 +774,7 @@ const START = 315, SPAN = 1065;      // 5:15 am → 11:00 pm
 const IDLE_BUSY = 7;                 // clock minutes per real second while cards wait on the board
 const IDLE_EMPTY = 26;               // clock minutes per real second when the board is empty
 const TRICKLE = 1.5;                 // extra minutes per real second while working on a task
+const WAIT_RATE = 1.5;               // while Papa is busy with one task, the other cards run down only this fast (minutes per real second)
 
 const COLS = {
   ama:    { name: "Ah Ma",  c: "var(--blue)",   t: "var(--blue-t)" },
@@ -2296,7 +2297,8 @@ function tick(dt) {
   if (S.dozing <= 0) { const e = dueEvent(); if (e) { e.fired = 1; if (G && !(evObj(e.id) || {}).toast) G.intr = (G.intr || 0) + 1; fireEvent(e.id); hud(); return; } }
   for (const c of S.cards.slice()) {
     if (c.state !== "open") continue;
-    c.left -= dM;
+    // the clock jumps by the task's full length, but waiting cards don't: finishing one task shouldn't wipe out the others
+    c.left -= G ? Math.min(dM, WAIT_RATE * dt) : dM;
     if (c.left <= 0) { miss(c); continue; }
     const r = c.left / c.max;
     c.fuseEl.style.width = (r * 100) + "%";
@@ -2587,7 +2589,7 @@ function storySlide(i) {
 function howToPlay() {
   show(`<div class="panel"><p class="eyebrow">How to play</p><ul class="how">
       <li style="--c:var(--blue)">Tasks appear under each column at set times. Tap one to start its mini-game.</li>
-      <li style="--c:var(--green)">Each card shows how long the task really takes. A 40-minute bath moves the clock 40 minutes, and new tasks keep arriving while you work.</li>
+      <li style="--c:var(--green)">Each card shows how long the task really takes. A 40-minute bath moves the clock 40 minutes, and new tasks keep arriving while you work. The other cards wait for you, but not for long.</li>
       <li style="--c:var(--orange)">A card’s line shrinks as time runs out. Missed tasks stay crossed out, can cause new problems, and the worry costs energy.</li>
       <li style="--c:var(--red)">Every task costs energy, and a tired Papa finds everything harder. When energy runs out, he nods off.</li>
       <li style="--c:var(--purple)">When nothing needs you, the clock skips ahead to the next thing.</li>
